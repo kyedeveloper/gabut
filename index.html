@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>METROPOLIS — City Builder</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#060c11;color:#e8eef4;
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;user-select:none}
+  #game{position:fixed;inset:0;display:block;cursor:crosshair;touch-action:none}
+  .panel{position:fixed;background:rgba(11,18,25,.96);border:1px solid #22303c;
+    border-radius:12px;backdrop-filter:blur(12px);box-shadow:0 10px 34px rgba(0,0,0,.65)}
+  #hud{top:6px;left:6px;padding:7px 9px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+    font-size:10.5px;z-index:30;max-width:calc(100vw - 12px)}
+  .stat{display:flex;flex-direction:column;gap:1px;min-width:48px}
+  .stat b{font-size:12.5px;font-weight:700}
+  .stat span{font-size:7.5px;text-transform:uppercase;letter-spacing:.8px;color:#6b7c89}
+  .ok{color:#4ecb80}.warn{color:#efb03c}.bad{color:#f2665f}
+  #speed{display:flex;gap:3px;margin-left:auto}
+  .sbtn{width:26px;height:26px;border-radius:6px;border:1px solid #263340;background:#131e28;
+    color:#c0cedb;font-size:10px;cursor:pointer;font-weight:700}
+  .sbtn.on{background:#e8933a;color:#101820;border-color:#e8933a}
+  #toolbar{left:50%;bottom:6px;transform:translateX(-50%);padding:6px;display:flex;gap:4px;
+    z-index:30;max-width:calc(100vw - 12px);overflow-x:auto;scrollbar-width:none}
+  #toolbar::-webkit-scrollbar{display:none}
+  .grp{display:flex;gap:3px;padding-right:6px;border-right:1px solid #1f2c38;flex:0 0 auto}
+  .grp:last-child{border:none;padding-right:0}
+  .tool{width:44px;height:46px;border-radius:8px;border:1px solid #263340;background:#131e28;
+    color:#a2b3c2;cursor:pointer;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:1px;font-size:7.5px;line-height:1.05;transition:.1s;flex:0 0 auto;position:relative}
+  .tool:hover{background:#1b2833;border-color:#374a5c}
+  .tool.on{background:#e8933a;color:#101820;border-color:#e8933a;font-weight:700}
+  .tool .ic{font-size:15px}
+  .tool .c{font-size:7px;opacity:.7}
+  .tool.lock{opacity:.3;pointer-events:none}
+  #minimap{right:6px;bottom:6px;padding:4px;z-index:30}
+  #minimap canvas{display:block;border-radius:5px;width:118px;height:118px;image-rendering:pixelated;background:#07101a;cursor:crosshair}
+  #side{right:6px;top:6px;width:240px;max-height:calc(100vh - 210px);overflow-y:auto;
+    padding:9px;z-index:31;display:none;font-size:10.5px}
+  #side h4{font-size:10.5px;color:#e8933a;text-transform:uppercase;letter-spacing:1px;
+    margin-bottom:6px;border-bottom:1px solid #1f2c38;padding-bottom:4px}
+  .sl{margin-bottom:7px}
+  .sl label{display:flex;justify-content:space-between;font-size:9.5px;color:#94a6b4;margin-bottom:2px}
+  .sl input{width:100%;accent-color:#e8933a;height:13px}
+  .btn{width:100%;padding:6px;border-radius:6px;border:1px solid #283644;background:#141f29;
+    color:#c4d2de;font-size:10px;cursor:pointer;margin-bottom:4px}
+  .btn:hover{background:#1d2b37}
+  .btn.pri{background:#e8933a;color:#101820;border-color:#e8933a;font-weight:700}
+  .btn.dgr{background:#8a302a;color:#ffd9d6;border-color:#a63c35}
+  #info{left:6px;bottom:6px;padding:8px 10px;font-size:10.5px;max-width:190px;display:none;
+    z-index:30;line-height:1.45}
+  #info h4{font-size:11px;margin-bottom:3px;color:#e8933a}
+  #toast{position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:70;
+    display:flex;flex-direction:column;gap:4px;align-items:center;pointer-events:none}
+  .msg{background:rgba(11,18,25,.97);border:1px solid #283644;border-left:3px solid #e8933a;
+    padding:5px 12px;border-radius:6px;font-size:10.5px;animation:pop .2s ease;max-width:82vw}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px)}}
+  #chirp{position:fixed;right:6px;top:210px;width:224px;z-index:29;display:flex;
+    flex-direction:column;gap:4px;pointer-events:none}
+  .chirp{background:rgba(11,18,25,.92);border:1px solid #22303c;border-radius:9px;
+    padding:6px 9px;font-size:9.5px;line-height:1.4;color:#9db0be;animation:pop .25s ease}
+  .chirp b{color:#e8933a;display:block;font-size:9px;margin-bottom:1px}
+  #splash{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:9px;text-align:center;padding:18px;overflow-y:auto;
+    background:radial-gradient(circle at 50% 28%,#152738,#04080c 74%)}
+  #splash h1{font-size:clamp(22px,5.5vw,38px);letter-spacing:3px;font-weight:800;
+    background:linear-gradient(90deg,#e8933a,#f2d24e);-webkit-background-clip:text;background-clip:text;color:transparent}
+  #splash p{max-width:420px;font-size:11.5px;line-height:1.6;color:#8b9eae}
+  .tabs{display:flex;gap:5px;margin:6px 0}
+  .tab{padding:6px 15px;border-radius:7px;border:1px solid #283644;background:#121d26;
+    color:#a8b8c6;font-size:10.5px;cursor:pointer}
+  .tab.on{background:#e8933a;color:#101820;border-color:#e8933a;font-weight:700}
+  .tabpane{display:none;width:100%;max-width:400px}
+  .tabpane.on{display:block}
+  .fld{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;
+    font-size:10.5px;color:#9db0be;text-align:left}
+  .fld select,.fld input[type=text],.fld input[type=number]{background:#101a23;border:1px solid #283644;
+    color:#dbe6ef;border-radius:6px;padding:5px 7px;font-size:10.5px;min-width:130px}
+  .fld input[type=range]{accent-color:#e8933a;width:130px}
+  .big{padding:9px 20px;border-radius:8px;border:1px solid #e8933a;background:#e8933a;
+    color:#101820;font-weight:800;font-size:11.5px;cursor:pointer}
+  .big.alt{background:transparent;color:#e8933a}
+  .big.wide{width:100%;max-width:400px}
+  #slots{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+  .slot{padding:6px 12px;border-radius:6px;border:1px solid #283644;background:#111c25;
+    color:#b4c4d1;font-size:10px;cursor:pointer}
+  .slot:hover{background:#1a2833}
+  #help,#modpanel{position:fixed;inset:0;z-index:90;background:rgba(4,8,12,.95);
+    display:none;padding:24px;overflow-y:auto}
+  #help .in,#modpanel .in{max-width:560px;margin:0 auto;font-size:12px;line-height:1.7;color:#a4b6c4}
+  #help h3{color:#e8933a;margin:14px 0 5px;font-size:12.5px}
+  #help b{color:#e8eef4}
+  textarea{width:100%;height:190px;background:#0c151d;border:1px solid #283644;border-radius:7px;
+    color:#cfe0ee;font-family:monospace;font-size:10.5px;padding:8px;resize:vertical}
+  #gameover{position:fixed;inset:0;z-index:95;background:rgba(4,8,12,.95);display:none;
+    flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:22px}
+  #graph{display:block;width:100%;height:76px;border-radius:5px;background:#0a121a;margin-bottom:7px}
+  .rowflex{display:flex;gap:4px;margin-bottom:4px}
+  .rowflex .btn{margin-bottom:0}
+  .ach{display:flex;gap:7px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #17222c;font-size:10px}
+  .ach .dot{width:7px;height:7px;border-radius:50%;background:#26333f;margin-top:3px;flex:0 0 auto}
+  .ach.got .dot{background:#4ecb80;box-shadow:0 0 6px #4ecb80}
+  .ach.got span{color:#4ecb80}
+  .mini{font-size:9.5px;color:#7d8e9c;line-height:1.5}
+  .kbd{background:#16212b;border:1px solid #2b3947;border-radius:4px;padding:0 4px;font-size:9.5px}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="panel">
+  <div class="stat"><span>Kas</span><b id="s-money">$50.000</b></div>
+  <div class="stat"><span>Penduduk</span><b id="s-pop">0</b></div>
+  <div class="stat"><span>Kerja</span><b id="s-jobs">0</b></div>
+  <div class="stat"><span>Bahagia</span><b id="s-happy">70%</b></div>
+  <div class="stat"><span>Listrik</span><b id="s-power">0/0</b></div>
+  <div class="stat"><span>Air</span><b id="s-water">0/0</b></div>
+  <div class="stat"><span>Sampah</span><b id="s-trash">0%</b></div>
+  <div class="stat"><span>Barang</span><b id="s-goods">0</b></div>
+  <div class="stat"><span>Tanggal</span><b id="s-date">1 Jan 2000</b></div>
+  <div id="speed">
+    <button class="sbtn" data-sp="0">II</button>
+    <button class="sbtn on" data-sp="1">▶</button>
+    <button class="sbtn" data-sp="2">▶▶</button>
+    <button class="sbtn" data-sp="3">▶▶▶</button>
+  </div>
+</div>
+
+<div id="toolbar" class="panel"></div>
+<div id="minimap" class="panel"><canvas id="mm" width="52" height="52"></canvas></div>
+<div id="info" class="panel"></div>
+<div id="side" class="panel"></div>
+<div id="chirp"></div>
+<div id="toast"></div>
+
+<div id="splash">
+  <h1>METROPOLIS</h1>
+  <p>Kota, distrik, industri, pertanian, perdagangan, transportasi, ordinansi, bencana. Semuanya di tanganmu.</p>
+  <div class="tabs">
+    <button class="tab on" data-tab="new">Kota Baru</button>
+    <button class="tab" data-tab="load">Muat</button>
+    <button class="tab" data-tab="mods">Mod</button>
+    <button class="tab" data-tab="help">Panduan</button>
+  </div>
+
+  <div class="tabpane on" id="pane-new">
+    <div class="fld"><span>Ukuran peta</span><select id="m-size">
+      <option value="40">Kecil (40×40)</option>
+      <option value="52" selected>Sedang (52×52)</option>
+      <option value="68">Besar (68×68)</option>
+      <option value="84">Raksasa (84×84)</option>
+    </select></div>
+    <div class="fld"><span>Bentuk lahan</span><select id="m-terrain">
+      <option value="island" selected>Pulau</option>
+      <option value="flat">Dataran</option>
+      <option value="river">Sungai</option>
+      <option value="mountain">Pegunungan</option>
+      <option value="archipelago">Kepulauan</option>
+      <option value="lake">Danau</option>
+    </select></div>
+    <div class="fld"><span>Ketinggian air</span><input type="range" id="m-water" min="0" max="100" value="50"></div>
+    <div class="fld"><span>Kerapatan pohon</span><input type="range" id="m-tree" min="0" max="100" value="12"></div>
+    <div class="fld"><span>Benih peta</span><input type="number" id="m-seed" value="1337"></div>
+    <div class="fld"><span>Mode</span><select id="m-mode">
+      <option value="normal" selected>Normal</option>
+      <option value="sandbox">Sandbox (uang bebas)</option>
+      <option value="hard">Sulit (kas ketat)</option>
+    </select></div>
+    <button class="big wide" id="btn-new">Mulai Membangun</button>
+  </div>
+
+  <div class="tabpane" id="pane-load">
+    <div id="slots"></div>
+  </div>
+
+  <div class="tabpane" id="pane-mods">
+    <p class="mini" style="margin-bottom:8px">Tempel JSON mod di bawah. Mod menambah bangunan, zona, dan ordinansi baru. Tersimpan di perangkatmu.</p>
+    <textarea id="modinput" placeholder='{"name":"Mod Saya","buildings":[{"id":"menara","cat":"svc","n":"Menara","cost":1200,"up":20,"hw":16,"h":44,"top":"#e0e0e0","left":"#8a8a8a","right":"#a0a0a0","rad":6,"cover":"park","ic":"T"}]}'></textarea>
+    <div class="rowflex" style="margin-top:6px">
+      <button class="btn pri" id="btn-modadd">Pasang Mod</button>
+      <button class="btn" id="btn-modclear">Hapus Semua Mod</button>
+    </div>
+    <div id="modlist" class="mini" style="margin-top:8px"></div>
+  </div>
+
+  <div class="tabpane" id="pane-help">
+    <div style="text-align:left">
+      <h3 style="color:#e8933a;font-size:12px;margin-bottom:5px">Alur dasar</h3>
+      <p class="mini">Gambar jalan → cat zona di sebelahnya → bangun pembangkit + menara air + sambungkan kabel/pipa → tunggu warga → sediakan polisi, damkar, sekolah, TPA, IPAL.</p>
+      <h3 style="color:#e8933a;font-size:12px;margin:10px 0 5px">Distrik</h3>
+      <p class="mini">Buat distrik, cat areanya, lalu terapkan kebijakan lokal (pajak, larangan industri, subsidi).</p>
+      <h3 style="color:#e8933a;font-size:12px;margin:10px 0 5px">Perdagangan</h3>
+      <p class="mini">Industri memproduksi barang, komersial mengonsumsinya. Surplus diekspor otomatis, defisit diimpor dengan harga lebih mahal.</p>
+      <h3 style="color:#e8933a;font-size:12px;margin:10px 0 5px">Kontrol</h3>
+      <p class="mini"><span class="kbd">Seret</span> geser · <span class="kbd">Scroll</span> zoom · <span class="kbd">Kanan</span> pan · <span class="kbd">Spasi</span> jeda · <span class="kbd">Esc</span> batal</p>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:8px"><button class="big alt" id="btn-helpclose">Tutup</button></div>
+</div>
+
+<div id="gameover">
+  <h1 style="font-size:26px;color:#f2665f">KOTA BANGKRUT</h1>
+  <p style="color:#8b9eae;font-size:11.5px">Kas menembus batas bawah terlalu lama.</p>
+  <button class="big" id="btn-restart">Mulai Ulang</button>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ══════════ UTIL ══════════ */
+let MAP_W = 52, MAP_H = 52;
+const TW = 64, TH = 32;
+const cvs = document.getElementById('game'), ctx = cvs.getContext('2d');
+let W = 0, H = 0, zoom = 1, panX = 0, panY = 0;
+
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const money = n => (n<0?'-$':'$') + Math.abs(Math.round(n)).toLocaleString('id-ID');
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+
+let rngState = 1;
+function srand(s){ rngState = (s>>>0) || 1; }
+function rnd(){
+  rngState ^= rngState << 13; rngState >>>= 0;
+  rngState ^= rngState >> 17;
+  rngState ^= rngState << 5; rngState >>>= 0;
+  return rngState / 4294967296;
+}
+
+/* ══════════ DATA DASAR ══════════ */
+const TCOL = {
+  grass:['#3a6335','#406a3a','#45703f'],
+  sand:['#bcab80','#c4b387','#b7a379'],
+  water:['#1a4570','#1f4e7b','#153c62'],
+  rock:['#65645f','#6f6e69','#5b5a56'],
+  snow:['#c8d4dc','#d2dee6','#bcc8d2']
+};
+
+const ZB = {
+  1:[
+    {pop:6,pw:1,wt:1,hw:12,h:14,top:'#c8705a',left:'#8d4b39',right:'#a3564a'},
+    {pop:16,pw:2,wt:2,hw:14,h:22,top:'#c9a08e',left:'#8a6a5c',right:'#a57e6d'},
+    {pop:40,pw:4,wt:4,hw:17,h:38,top:'#b8b1a3',left:'#7a746a',right:'#8f887c'},
+    {pop:95,pw:9,wt:8,hw:20,h:66,top:'#a3b0bd',left:'#5f6a76',right:'#77838f'}
+  ],
+  2:[
+    {jobs:5,pw:2,wt:1,hw:13,h:13,top:'#5f8fb5',left:'#3d6480',right:'#4a7593'},
+    {jobs:16,pw:4,wt:2,hw:16,h:26,top:'#79a7c7',left:'#436d8a',right:'#57819d'},
+    {jobs:45,pw:9,wt:4,hw:19,h:52,top:'#9dc4dc',left:'#4e7a97',right:'#6b96b3'},
+    {jobs:120,pw:20,wt:9,hw:22,h:88,top:'#c2dcee',left:'#5d8aa8',right:'#7ea6c3'}
+  ],
+  3:[
+    {jobs:8,pw:3,wt:2,hw:15,h:15,top:'#8a8577',left:'#5e5a4f',right:'#716c60',poll:5,noise:6,goods:3},
+    {jobs:24,pw:7,wt:4,hw:18,h:26,top:'#9a8f74',left:'#655c48',right:'#7d7358',poll:10,noise:11,goods:11},
+    {jobs:62,pw:15,wt:7,hw:21,h:44,top:'#a89370',left:'#6b5c42',right:'#877553',poll:17,noise:17,goods:30},
+    {jobs:160,pw:34,wt:15,hw:24,h:70,top:'#b7a181',left:'#78684a',right:'#96805d',poll:26,noise:24,goods:76}
+  ],
+  4:[
+    {jobs:3,pw:1,wt:3,hw:20,h:6,top:'#8aa84e',left:'#5c7333',right:'#6d8840',poll:1,noise:1,food:2},
+    {jobs:8,pw:2,wt:5,hw:22,h:10,top:'#9ab858',left:'#687f39',right:'#7a9447',poll:2,noise:2,food:6},
+    {jobs:18,pw:4,wt:8,hw:24,h:14,top:'#a8c462',left:'#748c40',right:'#88a04e',poll:3,noise:3,food:15},
+    {jobs:34,pw:7,wt:12,hw:26,h:18,top:'#b6d06c',left:'#7e9846',right:'#94ae55',poll:4,noise:4,food:32}
+  ]
+};
+
+const S = {
+  dirt:   {cat:'road',n:'Jalan Tanah',cost:8,up:1,cap:40,flat:true,road:'dirt'},
+  asphalt:{cat:'road',n:'Jalan Aspal',cost:25,up:3,cap:140,flat:true,road:'asphalt'},
+  avenue: {cat:'road',n:'Jalan Raya',cost:70,up:8,cap:420,flat:true,road:'avenue'},
+  highway:{cat:'road',n:'Tol',cost:180,up:20,cap:900,flat:true,road:'highway',unlock:900},
+
+  pylon:  {cat:'net',n:'Kabel Listrik',cost:12,up:1,flat:true,net:'power',h:26,top:'#888',left:'#5c5c5c',right:'#707070'},
+  pipe:   {cat:'net',n:'Pipa Air',cost:14,up:1,flat:true,net:'water',h:6,top:'#4a7fa8',left:'#2d5473',right:'#396684'},
+
+  coal:   {cat:'util',n:'PLTU Batu Bara',cost:3200,up:170,pw:0,wt:8,out:400,poll:14,rad:7,hw:22,h:44,top:'#6e6a63',left:'#43403a',right:'#565249',ic:'⚡'},
+  gas:    {cat:'util',n:'PLTG Gas',cost:2600,up:150,out:300,poll:6,rad:6,hw:20,h:38,top:'#7a6a52',left:'#4c4132',right:'#62543f',ic:'⚡',unlock:400},
+  solar:  {cat:'util',n:'Panel Surya',cost:2100,up:40,out:110,rad:4,hw:20,h:5,top:'#2f4f7a',left:'#1f3552',right:'#27405f',ic:'☀',unlock:700},
+  wind:   {cat:'util',n:'Turbin Angin',cost:1800,up:28,out:130,rad:3,hw:9,h:62,top:'#dfe6ec',left:'#9aa6b1',right:'#b9c4cd',ic:'✧',unlock:1200},
+  nuclear:{cat:'util',n:'PLTN',cost:18000,up:900,out:2600,rad:12,hw:24,h:56,top:'#8f9aa4',left:'#5a636b',right:'#727c85',ic:'☢',unlock:9000},
+
+  tower:  {cat:'water',n:'Menara Air',cost:800,up:28,pw:5,wout:200,rad:5,hw:11,h:54,top:'#5c8fb5',left:'#37627f',right:'#457392',ic:'▲'},
+  pump:   {cat:'water',n:'Pompa Air',cost:1100,up:42,pw:8,wout:380,rad:6,needWater:true,hw:18,h:18,top:'#4a7fa8',left:'#2d5473',right:'#396684',ic:'≈'},
+  sewage: {cat:'water',n:'IPAL',cost:4200,up:190,pw:26,wt:10,rad:9,sewage:true,hw:22,h:30,top:'#5c6f52',left:'#3a4733',right:'#4a5942',ic:'♻',unlock:800},
+  landfill:{cat:'water',n:'TPA',cost:2400,up:110,pw:8,rad:10,trash:true,hw:24,h:14,top:'#6b6047',left:'#443d2d',right:'#574e39',ic:'▣',unlock:500},
+  incin:  {cat:'water',n:'Insinerator',cost:5600,up:240,pw:34,rad:12,trash:true,poll:9,hw:24,h:36,top:'#7a6f5c',left:'#4a4235',right:'#615746',ic:'♨',unlock:4000},
+
+  police: {cat:'svc',n:'Kantor Polisi',cost:800,up:40,pw:8,wt:3,rad:7,cover:'police',hw:16,h:32,top:'#3f6fae',left:'#284a77',right:'#315a8d',ic:'P'},
+  fire:   {cat:'svc',n:'Pos Damkar',cost:800,up:40,pw:8,wt:3,rad:7,cover:'fire',hw:16,h:32,top:'#b8443a',left:'#7d2b24',right:'#96352c',ic:'D'},
+  hospital:{cat:'svc',n:'Rumah Sakit',cost:2600,up:130,pw:20,wt:9,rad:9,cover:'health',hw:20,h:40,top:'#d8d8d8',left:'#8f9295',right:'#a9acaf',ic:'+',unlock:600},
+  park:   {cat:'svc',n:'Taman',cost:200,up:8,rad:5,cover:'park',hw:18,h:4,top:'#4f9e4a',left:'#356b31',right:'#3f7d3a',ic:'♣'},
+  plaza:  {cat:'svc',n:'Alun-alun',cost:900,up:26,pw:3,wt:2,rad:7,cover:'park',hw:24,h:3,top:'#b9a98c',left:'#847758',right:'#9c8f70',ic:'◈',unlock:1000},
+  sports: {cat:'svc',n:'Gelanggang',cost:1500,up:60,pw:10,wt:5,rad:8,cover:'park',cover2:'health',hw:26,h:16,top:'#4a8a5c',left:'#2f5c3c',right:'#3b7049',ic:'◎',unlock:1500},
+  cemetery:{cat:'svc',n:'Pemakaman',cost:1100,up:20,rad:6,cover:'park',hw:24,h:5,top:'#6d7a63',left:'#454e3e',right:'#57614e',ic:'✝',unlock:2000},
+
+  school: {cat:'edu',n:'Sekolah',cost:1200,up:55,pw:9,wt:4,rad:8,cover:'edu',hw:18,h:30,top:'#d9c26b',left:'#8f7d3a',right:'#a8903f',ic:'S',unlock:250},
+  high:   {cat:'edu',n:'SMA',cost:2400,up:95,pw:14,wt:6,rad:10,cover:'edu2',hw:21,h:34,top:'#c9a94e',left:'#826c2c',right:'#9a8035',ic:'S',unlock:1500},
+  univ:   {cat:'edu',n:'Universitas',cost:6500,up:240,pw:32,wt:14,rad:13,cover:'edu3',hw:26,h:42,top:'#b8a04a',left:'#756226',right:'#8d772f',ic:'U',unlock:4000},
+
+  busstop:{cat:'trans',n:'Halte Bus',cost:180,up:8,rad:5,trans:true,hw:9,h:20,top:'#3b8f8f',left:'#255d5d',right:'#2f7373',ic:'B',unlock:200},
+  rail:   {cat:'trans',n:'Rel Kereta',cost:60,up:4,flat:true,rail:true,unlock:600},
+  metro:  {cat:'trans',n:'Stasiun Metro',cost:2800,up:110,pw:20,wt:6,rad:11,trans:true,hw:22,h:26,top:'#7a5fa8',left:'#4c3b6b',right:'#5f4a85',ic:'M',unlock:2500},
+  raildepot:{cat:'trans',n:'Stasiun Kereta',cost:4200,up:170,pw:26,wt:8,rad:12,trans:true,hw:26,h:32,top:'#8a6b4a',left:'#57432e',right:'#6c533a',ic:'K',unlock:3500},
+  seaport:{cat:'trans',n:'Pelabuhan',cost:7200,up:280,pw:36,wt:12,rad:12,trans:true,needWater:true,hw:28,h:26,top:'#4a6f8a',left:'#2e4657',right:'#3a586c',ic:'⚓',unlock:5000},
+  airport:{cat:'trans',n:'Bandara',cost:16000,up:620,pw:70,wt:22,rad:16,trans:true,hw:30,h:22,top:'#9aa4ad',left:'#616a71',right:'#7b848c',ic:'✈',unlock:9000},
+
+  tree:   {cat:'nat',n:'Pohon',cost:30,up:1,rad:2,cover:'park',hw:10,h:22,top:'#2f6b2c',left:'#1d461b',right:'#265a24',ic:''},
+
+  bulldoze:{cat:'tool',n:'Bongkar',cost:0,up:0,ic:'✖'},
+  inspect: {cat:'tool',n:'Periksa',cost:0,up:0,ic:'🔍'},
+  district:{cat:'tool',n:'Distrik',cost:0,up:0,ic:'⬢'}
+};
+
+const ZONE_TOOLS = {zone1:1, zone2:2, zone3:3, zone4:4};
+const ZNAME = {1:'Perumahan',2:'Komersial',3:'Industri',4:'Pertanian'};
+const ZCOL = {1:'rgba(86,200,120,',2:'rgba(80,150,235,',3:'rgba(228,188,70,',4:'rgba(150,215,90,'};
+
+/* ══════════ ORDINANSI ══════════ */
+const ORDINANCES = [
+  {id:'recycle', n:'Program Daur Ulang', cost:400, up:40, desc:'Sampah -35%', eff:s=>{ s.trashMul = (s.trashMul||1)*0.65; }},
+  {id:'smoke', n:'Kontrol Asap', cost:500, up:55, desc:'Polusi industri -40%', eff:s=>{ s.pollMul=(s.pollMul||1)*0.6; }},
+  {id:'clinic', n:'Klinik Gratis', cost:600, up:70, desc:'Kesehatan +18', eff:s=>{ s.healthBonus=(s.healthBonus||0)+18; }},
+  {id:'night', n:'Kerja Shift Malam', cost:300, up:20, desc:'Pekerjaan +12%', eff:s=>{ s.jobMul=(s.jobMul||1)*1.12; }},
+  {id:'tour', n:'Kampanye Wisata', cost:900, up:90, desc:'Pemasukan komersial +20%', eff:s=>{ s.comMul=(s.comMul||1)*1.2; }},
+  {id:'ration', n:'Rationing Air', cost:0, up:0, desc:'Konsumsi air -25%, bahagia -4', eff:s=>{ s.waterMul=(s.waterMul||1)*0.75; s.happyFlat=(s.happyFlat||0)-4; }},
+  {id:'green', n:'Wajib Ruang Hijau', cost:200, up:35, desc:'Nilai lahan +12%, biaya bangun +10%', eff:s=>{ s.lvBonus=(s.lvBonus||0)+12; s.costMul=(s.costMul||1)*1.1; }},
+  {id:'curfew', n:'Jam Malam', cost:150, up:15, desc:'Kriminalitas -45%, bahagia -3', eff:s=>{ s.crimeMul=(s.crimeMul||1)*0.55; s.happyFlat=(s.happyFlat||0)-3; }},
+  {id:'subsidi', n:'Subsidi Pangan', cost:700, up:80, desc:'Pertanian untung 2×, bahagia +6', eff:s=>{ s.foodMul=(s.foodMul||1)*2; s.happyFlat=(s.happyFlat||0)+6; }},
+  {id:'freebus', n:'Bus Gratis', cost:800, up:120, desc:'Jangkauan transportasi +40%', eff:s=>{ s.transMul=(s.transMul||1)*1.4; }}
+];
+
+/* ══════════ PENCAPAIAN ══════════ */
+const ACHIEVEMENTS = [
+  {id:'a1', n:'Batu Pertama', d:'Bangun jalan pertama', c:()=> grid.some(t=>t.road)},
+  {id:'a2', n:'Penghuni', d:'Populasi 100', c:()=> state.pop>=100},
+  {id:'a3', n:'Kota Kecil', d:'Populasi 1.000', c:()=> state.pop>=1000},
+  {id:'a4', n:'Metropolis', d:'Populasi 25.000', c:()=> state.pop>=25000},
+  {id:'a5', n:'Terang', d:'Kapasitas listrik 1.000', c:()=> state.powerCap>=1000},
+  {id:'a6', n:'Hidup', d:'Kapasitas air 1.000', c:()=> state.waterCap>=1000},
+  {id:'a7', n:'Cendekia', d:'Pendidikan 70%', c:()=> state.education>=70},
+  {id:'a8', n:'Sehat', d:'Kesehatan 80%', c:()=> state.health>=80},
+  {id:'a9', n:'Damai', d:'Bahagia 90%', c:()=> state.happiness>=90},
+  {id:'a10',n:'Kaya', d:'Kas $500.000', c:()=> state.money>=500000},
+  {id:'a11',n:'Eksportir', d:'Ekspor 500 barang', c:()=> state.exported>=500},
+  {id:'a12',n:'Nuklir', d:'Bangun PLTN', c:()=> grid.some(t=>t.b&&t.b.id==='nuclear')},
+  {id:'a13',n:'Bandar Udara', d:'Bangun bandara', c:()=> grid.some(t=>t.b&&t.b.id==='airport')},
+  {id:'a14',n:'Tahan Banting', d:'Selamat dari bencana', c:()=> state.disasters>=3},
+  {id:'a15',n:'Distrik', d:'Buat 3 distrik', c:()=> state.districts.length>=3}
+];
+
+/* ══════════ STATE ══════════ */
+const state = {
+  money: 50000, day: 0, speed: 1, tool: 'inspect', overlay: 'none', mode: 'normal',
+  happiness: 70, health: 70, education: 20, crime: 0, approval: 65,
+  pop: 0, jobs: 0, workforce: 0, comJobs: 0, indJobs: 0, agriJobs: 0,
+  powerCap: 0, powerUse: 0, waterCap: 0, waterUse: 0,
+  powerOk: true, waterOk: true, trash: 0, sewage: 0,
+  goods: 0, food: 0, exported: 0, imported: 0,
+  demand: {1:0,2:0,3:0,4:0}, taxR: 9, taxC: 9, taxI: 9, taxA: 6,
+  fundPolice: 100, fundFire: 100, fundHealth: 100, fundEdu: 100, fundPark: 100,
+  income: 0, upkeep: 0, loans: [], acc: 0, started: false, dead: false,
+  milestone: 0, history: [], pollAvg: 0, crimeAvg: 0,
+  districts: [], curDistrict: 0, ordinances: {}, ach: {}, disasters: 0,
+  mods: [], busLines: 0, waterLevel: 50, treeDensity: 12, terrain: 'island'
+};
+
+let grid = [], hover = null;
+const idx = (x,y) => y*MAP_W+x;
+const tileAt = (x,y) => (x<0||y<0||x>=MAP_W||y>=MAP_H) ? null : grid[idx(x,y)];
+
+/* ══════════ GENERASI PETA ══════════ */
+function genMap(){
+  grid = new Array(MAP_W*MAP_H);
+  let hm = new Float32Array(MAP_W*MAP_H);
+  const wl = (state.waterLevel-50)/100;
+  const terr = state.terrain;
+
+  for (let i=0;i<hm.length;i++) hm[i] = rnd();
+
+  if (terr === 'island' || terr === 'archipelago'){
+    const k = terr==='archipelago' ? 1.0 : 0.62;
+    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+      const dx=(x/MAP_W-.5)*2, dy=(y/MAP_H-.5)*2;
+      hm[idx(x,y)] -= (dx*dx+dy*dy)*k;
+    }
+  } else if (terr === 'lake'){
+    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+      const d = Math.hypot(x/MAP_W-.5, y/MAP_H-.5);
+      hm[idx(x,y)] += (1-d*2)*0.55;
+    }
+  } else if (terr === 'river'){
+    const cy = MAP_H/2;
+    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+      const w = Math.sin(x/MAP_W*Math.PI*3)*4 + cy;
+      const d = Math.abs(y-w)/6;
+      hm[idx(x,y)] -= Math.max(0, 0.55-d*0.55);
+    }
+  } else if (terr === 'mountain'){
+    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+      const d = Math.hypot(x/MAP_W-.5, y/MAP_H-.5);
+      hm[idx(x,y)] += (1-d*1.7)*0.9;
+    }
+  } else if (terr === 'flat'){
+    for (let i=0;i<hm.length;i++) hm[i] = 0.55 + hm[i]*0.12;
+  }
+
+  for (let p=0;p<5;p++){
+    const sm = new Float32Array(hm.length);
+    for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+      let s=0,c=0;
+      for (let oy=-1;oy<=1;oy++) for (let ox=-1;ox<=1;ox++){
+        s += hm[idx(clamp(x+ox,0,MAP_W-1),clamp(y+oy,0,MAP_H-1))]; c++;
+      }
+      sm[idx(x,y)] = s/c;
+    }
+    hm = sm;
+  }
+
+  const wThresh = 0.36 + wl*0.22;
+  for (let y=0;y<MAP_H;y++) for (let x=0;x<MAP_W;x++){
+    const h = hm[idx(x,y)];
+    let t = 'grass';
+    if (h < wThresh) t = 'water';
+    else if (h < wThresh+0.035) t = 'sand';
+    else if (h > 0.78) t = 'snow';
+    else if (h > 0.66) t = 'rock';
+    grid[idx(x,y)] = {
+      x,y,t,z:0,b:null,road:null,net:null,rail:false,tree:false,
+      powered:false,watered:false,
+      cover:{police:0,fire:0,health:0,edu:0,edu2:0,edu3:0,park:0,trans:0},
+      poll:0,noise:0,crimeR:0,fireR:0,lv:0,traffic:0,district:0,
+      v:rnd(),seed:rnd(),burn:0
+    };
+  }
+  // jamin daratan tengah
+  const cx = MAP_W>>1, cy2 = MAP_H>>1, R = Math.floor(MAP_W*0.12);
+  for (let y=cy2-R;y<=cy2+R;y++) for (let x=cx-R;x<=cx+R;x++){
+    const t = tileAt(x,y);
+    if (t && (t.t==='water'||t.t==='snow'||t.t==='rock')) t.t = 'grass';
+  }
+  for (const t of grid) if (t.t==='grass' && rnd() < state.treeDensity/100) t.tree = true;
+}
+
+/* ══════════ GEOMETRI ══════════ */
+const iso = (x,y) => ({x:(x-y)*TW/2, y:(x+y)*TH/2});
+function pick(sx,sy){
+  const wx=(sx-panX)/zoom, wy=(sy-panY)/zoom;
+  const a=wx/(TW/2), b=wy/(TH/2);
+  return {x:Math.floor((a+b)/2), y:Math.floor((b-a)/2)};
+}
+function diamond(cx,cy,hw){
+  const hh=hw/2;
+  ctx.beginPath();
+  ctx.moveTo(cx,cy-hh); ctx.lineTo(cx+hw,cy); ctx.lineTo(cx,cy+hh); ctx.lineTo(cx-hw,cy);
+  ctx.closePath();
+}
+function box(cx,cy,hw,h,top,left,right){
+  const hh=hw/2;
+  ctx.fillStyle=left;
+  ctx.beginPath(); ctx.moveTo(cx-hw,cy-hh); ctx.lineTo(cx,cy);
+  ctx.lineTo(cx,cy-h); ctx.lineTo(cx-hw,cy-hh-h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=right;
+  ctx.beginPath(); ctx.moveTo(cx+hw,cy-hh); ctx.lineTo(cx,cy);
+  ctx.lineTo(cx,cy-h); ctx.lineTo(cx+hw,cy-hh-h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle=top;
+  ctx.beginPath(); ctx.moveTo(cx,cy-hh-h); ctx.lineTo(cx+hw,cy-h);
+  ctx.lineTo(cx,cy+hh-h); ctx.lineTo(cx-hw,cy-h); ctx.closePath(); ctx.fill();
+}
+
+/* ══════════ RENDER ══════════ */
+function nightAmount(){
+  const hour = (state.day % 1) * 24;
+  const d = Math.cos((hour-13)/24*Math.PI*2);
+  return clamp(-d*.55+.15, 0, .62);
+}
+
+function drawTile(t){
+  const p = iso(t.x,t.y);
+  const pal = TCOL[t.t];
+  ctx.fillStyle = pal[Math.floor(t.v*pal.length)%pal.length];
+  diamond(p.x,p.y,TW/2); ctx.fill();
+
+  if (t.tree && !t.b && !t.road){
+    ctx.fillStyle='#1d451c';
+    ctx.beginPath(); ctx.moveTo(p.x,p.y-18); ctx.lineTo(p.x+7,p.y-1);
+    ctx.lineTo(p.x-7,p.y-1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#2d662a';
+    ctx.beginPath(); ctx.moveTo(p.x,p.y-23); ctx.lineTo(p.x+5,p.y-8);
+    ctx.lineTo(p.x-5,p.y-8); ctx.closePath(); ctx.fill();
+  }
+  if (t.t==='water'){
+    ctx.strokeStyle='rgba(170,215,255,.14)'; ctx.lineWidth=1;
+    const off = Math.sin(performance.now()/900 + t.x + t.y)*4;
+    ctx.beginPath(); ctx.moveTo(p.x-12+off,p.y); ctx.lineTo(p.x+4+off,p.y+3); ctx.stroke();
+  }
+}
+
+function drawOverlay(t){
+  const p = iso(t.x,t.y);
+  if (state.overlay === 'none'){
+    if (t.z){
+      const show = state.tool.startsWith('zone') || !t.b;
+      if (show){
+        ctx.fillStyle = ZCOL[t.z] + (t.b?'.10)':'.22)');
+        diamond(p.x,p.y,TW/2); ctx.fill();
+      }
+    }
+    if (state.tool === 'district' && t.district){
+      ctx.fillStyle = 'rgba(230,140,60,.16)';
+      diamond(p.x,p.y,TW/2); ctx.fill();
+    }
+    return;
+  }
+  let v = 0, col = [0,0,0];
+  switch(state.overlay){
+    case 'power': v = t.powered?1:0; col=[240,190,60]; break;
+    case 'water': v = t.watered?1:0; col=[70,150,235]; break;
+    case 'poll': v = clamp(t.poll/40,0,1); col=[200,70,60]; break;
+    case 'noise': v = clamp(t.noise/30,0,1); col=[190,110,220]; break;
+    case 'crime': v = clamp(t.crimeR,0,1); col=[235,90,90]; break;
+    case 'fire': v = clamp(t.fireR,0,1); col=[250,150,50]; break;
+    case 'lv': v = clamp(t.lv/100,0,1); col=[90,220,140]; break;
+    case 'traffic': v = clamp(t.traffic/200,0,1); col=[250,200,60]; break;
+    case 'edu': v = clamp(t.cover.edu+t.cover.edu2*1.5+t.cover.edu3*2,0,1); col=[120,180,250]; break;
+    case 'trans': v = clamp(t.cover.trans,0,1); col=[150,120,240]; break;
+    case 'district': v = t.district?1:0; col=[230,140,60]; break;
+  }
+  if (v > .02){
+    ctx.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${.15+v*.6})`;
+    diamond(p.x,p.y,TW/2); ctx.fill();
+  }
+}
+
+function drawRoad(t){
+  const p = iso(t.x,t.y);
+  const base = t.road==='highway'?'#2d3137':t.road==='avenue'?'#34383e':t.road==='asphalt'?'#3b3f45':'#695b44';
+  ctx.fillStyle = base; diamond(p.x,p.y,TW/2); ctx.fill();
+  ctx.fillStyle = t.road==='dirt'?'rgba(255,255,255,.05)':'rgba(255,255,255,.07)';
+  diamond(p.x,p.y,TW/2-6); ctx.fill();
+  const link = (dx,dy)=>{ const n=tileAt(t.x+dx,t.y+dy); return n&&n.road; };
+  const h = link(1,0)||link(-1,0), v = link(0,1)||link(0,-1);
+  ctx.strokeStyle = t.road==='dirt'?'rgba(230,215,180,.35)':'rgba(245,225,140,.7)';
+  ctx.lineWidth = t.road==='highway'?2.5:1.6;
+  ctx.beginPath();
+  if (h){ ctx.moveTo(p.x-16,p.y-8); ctx.lineTo(p.x+16,p.y+8); }
+  if (v){ ctx.moveTo(p.x+16,p.y-8); ctx.lineTo(p.x-16,p.y+8); }
+  ctx.stroke();
+}
+
+function drawRail(t){
+  const p = iso(t.x,t.y);
+  ctx.fillStyle='#4a4a4a'; diamond(p.x,p.y,TW/2-4); ctx.fill();
+  ctx.strokeStyle='#8a8a8a'; ctx.lineWidth=2;
+  const link = (dx,dy)=>{ const n=tileAt(t.x+dx,t.y+dy); return n&&n.rail; };
+  ctx.beginPath();
+  if (link(1,0)||link(-1,0)){ ctx.moveTo(p.x-16,p.y-8); ctx.lineTo(p.x+16,p.y+8); }
+  if (link(0,1)||link(0,-1)){ ctx.moveTo(p.x+16,p.y-8); ctx.lineTo(p.x-16,p.y+8); }
+  ctx.stroke();
+}
+
+function drawNet(t){
+  const p = iso(t.x,t.y);
+  if (t.net==='power'){
+    ctx.strokeStyle='#888'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p.x,p.y-22); ctx.stroke();
+    ctx.fillStyle='#999'; ctx.fillRect(p.x-5,p.y-24,10,2);
+  } else {
+    ctx.fillStyle='#396684'; ctx.fillRect(p.x-4,p.y-4,8,6);
+    ctx.strokeStyle='#5c8fb5'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(p.x-10,p.y-1); ctx.lineTo(p.x+10,p.y-1); ctx.stroke();
+  }
+}
+
+function drawBuilding(t){
+  const b = t.b, p = iso(t.x,t.y);
+  const sp = S[b.id];
+  if (!sp) return;
+  ctx.fillStyle='rgba(0,0,0,.22)';
+  diamond(p.x+3,p.y+2,sp.hw+1); ctx.fill();
+  if (b.burning){
+    ctx.fillStyle = 'rgba(255,120,30,' + (.35+Math.random()*.3) + ')';
+    diamond(p.x,p.y,sp.hw+3); ctx.fill();
+  }
+  box(p.x,p.y,sp.hw,sp.h,sp.top,sp.left,sp.right);
+  if (sp.h > 18){
+    const n = Math.floor(sp.h/12);
+    const lit = nightAmount() > .25;
+    for (let r=0;r<n;r++){
+      const yy = p.y-9-r*12;
+      ctx.fillStyle = lit ? 'rgba(255,238,170,.85)' : 'rgba(190,220,240,.32)';
+      ctx.fillRect(p.x-sp.hw*.55,yy,3,4);
+      ctx.fillRect(p.x+sp.hw*.22,yy-3,3,4);
+    }
+  }
+  if (b.kind==='zone' && b.zone===1 && b.level<=2){
+    ctx.fillStyle='#7a3f30';
+    ctx.beginPath();
+    ctx.moveTo(p.x,p.y-sp.h-15); ctx.lineTo(p.x+sp.hw,p.y-sp.h);
+    ctx.lineTo(p.x-sp.hw,p.y-sp.h); ctx.closePath(); ctx.fill();
+  }
+  if (sp.ic){
+    ctx.fillStyle='rgba(8,14,20,.8)';
+    ctx.font='bold 12px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(sp.ic, p.x, p.y-sp.h-9);
+  }
+  if (!b.powered){
+    ctx.fillStyle='#efb03c'; ctx.font='bold 12px sans-serif';
+    ctx.textAlign='center'; ctx.fillText('!', p.x+sp.hw*.6, p.y-sp.h-3);
+  }
+  if (b.burning){
+    ctx.font='15px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🔥', p.x, p.y-sp.h-22);
+  }
+}
+
+function drawCursor(){
+  if (!hover || hover.x<0 || hover.y<0 || hover.x>=MAP_W || hover.y>=MAP_H) return;
+  const p = iso(hover.x,hover.y);
+  ctx.strokeStyle = state.tool==='bulldoze'?'#f2665f':'#f2c14e';
+  ctx.lineWidth = 2;
+  diamond(p.x,p.y,TW/2-1); ctx.stroke();
+}
+
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle='#050a0f'; ctx.fillRect(0,0,W,H);
+  ctx.setTransform(zoom,0,0,zoom,panX,panY);
+  for (let d=0; d<=MAP_W+MAP_H-2; d++){
+    const x0 = Math.max(0,d-MAP_H+1), x1 = Math.min(MAP_W-1,d);
+    for (let x=x0;x<=x1;x++){
+      const y = d-x, t = grid[idx(x,y)];
+      const p = iso(x,y);
+      const sx = p.x*zoom+panX, sy = p.y*zoom+panY;
+      if (sx<-100||sy<-160||sx>W+100||sy>H+100) continue;
+      drawTile(t);
+      drawOverlay(t);
+      if (t.road) drawRoad(t);
+      if (t.rail) drawRail(t);
+      if (t.net) drawNet(t);
+      if (t.b) drawBuilding(t);
+    }
+  }
+  drawCursor();
+  const na = nightAmount();
+  if (na > .02){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle = `rgba(10,18,40,${na})`;
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+/* ══════════ JARINGAN ══════════ */
+const condP = t => t.net==='power' || t.road;
+const condW = t => t.net==='water' || t.road;
+
+function spreadNet(isSrc, cond, radOf, mark){
+  const srcs = grid.filter(isSrc);
+  if (!srcs.length) return;
+  const seen = new Uint8Array(grid.length);
+  const q = [];
+  for (const s of srcs){ const i = idx(s.x,s.y); if (!seen[i]){ seen[i]=1; q.push(s); } }
+  let head = 0;
+  while (head < q.length){
+    const c = q[head++];
+    const R = radOf(c);
+    for (let dy=-R;dy<=R;dy++) for (let dx=-R;dx<=R;dx++){
+      const n = tileAt(c.x+dx,c.y+dy);
+      if (!n) continue;
+      const d = Math.hypot(dx,dy);
+      if (d > R) continue;
+      mark(n, 1-d/(R+.5));
+    }
+    for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const n = tileAt(c.x+dx,c.y+dy);
+      if (!n) continue;
+      const i = idx(n.x,n.y);
+      if (seen[i]) continue;
+      if (cond(n) || isSrc(n)){ seen[i]=1; q.push(n); }
+    }
+  }
+}
+
+function recomputeNets(){
+  for (const t of grid) t.powered = t.watered = false;
+  let pc=0,pu=0,wc=0,wu=0;
+  for (const t of grid){
+    if (!t.b) continue;
+    const sp = S[t.b.id];
+    if (!sp) continue;
+    if (sp.out) pc += sp.out;
+    if (sp.wout) wc += sp.wout;
+    if (sp.pw) pu += sp.pw;
+    if (sp.wt) wu += sp.wt;
+  }
+  pu *= (state.ordinances.ration ? .75 : 1);
+  state.powerCap=pc; state.powerUse=pu; state.waterCap=wc; state.waterUse=wu;
+  state.powerOk = pc >= pu; state.waterOk = wc >= wu;
+
+  spreadNet(t=>t.b&&S[t.b.id]&&S[t.b.id].out, condP, t=>S[t.b.id].rad, (n,s)=>{ if(s>.3) n.powered=true; });
+  spreadNet(t=>t.b&&S[t.b.id]&&S[t.b.id].wout, condW, t=>S[t.b.id].rad, (n,s)=>{ if(s>.3) n.watered=true; });
+
+  if (!state.powerOk) for (const t of grid) if (t.b && rnd() > pc/Math.max(pu,1)) t.powered=false;
+  if (!state.waterOk) for (const t of grid) if (t.b && rnd() > wc/Math.max(wu,1)) t.watered=false;
+}
+
+function recomputeCover(){
+  for (const t of grid) for (const k in t.cover) t.cover[k]=0;
+  for (const t of grid){
+    if (!t.b) continue;
+    const sp = S[t.b.id];
+    if (!sp || !sp.rad) continue;
+    if (!sp.cover && !sp.cover2 && !sp.trans) continue;
+    const fund = sp.cover==='police'?state.fundPolice/100 : sp.cover==='fire'?state.fundFire/100
+      : (sp.cover==='health'||sp.cover2==='health')?state.fundHealth/100
+      : (sp.cover&&sp.cover.startsWith('edu'))?state.fundEdu/100
+      : sp.cover==='park'?state.fundPark/100 : 1;
+    const R = sp.rad*(0.55+fund*0.45)*(sp.trans&&state.ordinances.freebus?1.4:1);
+    for (let dy=-Math.ceil(R);dy<=Math.ceil(R);dy++) for (let dx=-Math.ceil(R);dx<=Math.ceil(R);dx++){
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (!n) continue;
+      const d = Math.hypot(dx,dy);
+      if (d > R) continue;
+      const val = (1-d/(R+.5))*fund;
+      if (sp.cover) n.cover[sp.cover] = Math.max(n.cover[sp.cover], val);
+      if (sp.cover2) n.cover[sp.cover2] = Math.max(n.cover[sp.cover2], val);
+      if (sp.trans) n.cover.trans = Math.max(n.cover.trans, val);
+    }
+  }
+}
+
+function recomputePollution(){
+  for (const t of grid) t.poll = 0;
+  const mul = state.ordinances.smoke ? .6 : 1;
+  for (const t of grid){
+    if (!t.b) continue;
+    const sp = S[t.b.id];
+    let amt = 0;
+    if (t.b.kind==='zone' && t.b.zone===3) amt = ZB[3][t.b.level-1].poll||0;
+    if (sp && sp.poll) amt = sp.poll;
+    if (!amt) continue;
+    amt *= mul;
+    const R = 6;
+    for (let dy=-R;dy<=R;dy++) for (let dx=-R;dx<=R;dx++){
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (!n) continue;
+      const d = Math.hypot(dx,dy);
+      if (d > R) continue;
+      n.poll += amt*(1-d/(R+.5));
+    }
+  }
+}
+
+function recomputeNoise(){
+  for (const t of grid) t.noise = 0;
+  for (const t of grid){
+    let amt = 0;
+    if (t.b && t.b.kind==='zone' && t.b.zone===3) amt = ZB[3][t.b.level-1].noise||0;
+    if (t.road) amt += t.road==='highway'?14:t.road==='avenue'?8:t.road==='asphalt'?4:2;
+    if (t.rail) amt += 6;
+    if (!amt) continue;
+    const R = 4;
+    for (let dy=-R;dy<=R;dy++) for (let dx=-R;dx<=R;dx++){
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (!n) continue;
+      const d = Math.hypot(dx,dy);
+      if (d > R) continue;
+      n.noise += amt*(1-d/(R+.5));
+    }
+  }
+}
+
+function recomputeRisk(){
+  const cm = state.ordinances.curfew ? .55 : 1;
+  for (const t of grid){
+    let f = .02 + t.noise*.001;
+    if (t.b && t.b.kind==='zone' && t.b.zone===3) f += .02;
+    if (t.b && S[t.b.id] && S[t.b.id].out) f += .03;
+    f -= t.cover.fire*.08;
+    t.fireR = clamp(f,0,.5);
+    t.crimeR = clamp((.22 - t.cover.police*.28 - t.cover.park*.05 + t.poll*.002)*cm, 0, 1);
+  }
+}
+
+function recomputeTraffic(){
+  for (const t of grid){
+    if (!t.road){ t.traffic = 0; continue; }
+    let load = 0;
+    for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++){
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (n && n.b) load += n.b.kind==='zone' ? 6+n.b.level*4 : 12;
+    }
+    t.traffic = load;
+  }
+}
+
+function landValue(t){
+  const c = t.cover;
+  let v = 26 + c.park*30 + c.edu*16 + c.edu2*20 + c.edu3*26 + c.health*16
+        + c.police*14 + c.fire*10 + c.trans*22;
+  v -= t.poll*2.2 + t.noise*1.1 + t.crimeR*18;
+  if (t.road) v += 8;
+  if (state.ordinances.green) v += 12;
+  return clamp(v, 0, 100);
+}
+
+/* ══════════ SIM ══════════ */
+function computeDemand(){
+  const pop = state.pop, jobs = state.jobs, com = state.comJobs, ind = state.indJobs;
+  const hap = clamp(state.happiness/100,0,1);
+  const eduB = 1 + state.education/180;
+  const goodsOK = state.goods > 0 ? 1 : .55;
+  state.demand[1] = clamp((jobs*1.6 - pop)/150, -1, 1)*hap;
+  state.demand[2] = clamp((pop*.72*eduB*goodsOK - com*1.3)/120, -1, 1)*hap;
+  state.demand[3] = clamp((pop*.5 + com*.32 - ind)/140, -1, 1)*hap;
+  state.demand[4] = clamp((pop*.25 - state.agriJobs)/90, -1, 1)*hap;
+}
+
+function growth(){
+  if (state.happiness < 34) return;
+  for (const t of grid){
+    if (t.t==='water' || t.road || t.net || t.rail) continue;
+    const roadNear = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
+      const n = tileAt(t.x+dx,t.y+dy); return n && n.road;
+    });
+
+    if (t.z && !t.b){
+      if (!roadNear || !t.powered || !t.watered) continue;
+      const d = state.demand[t.z];
+      if (d <= .02) continue;
+      const lv = landValue(t);
+      const edu = t.cover.edu + t.cover.edu2*1.4 + t.cover.edu3*2;
+      let cap = 1;
+      if (lv > 38) cap = 2;
+      if (lv > 62 && edu > .3) cap = 3;
+      if (lv > 82 && edu > .85 && t.z !== 3) cap = 4;
+      if (rnd() < Math.min(.5, d*.07*(.55+lv/130))){
+        const lvl = Math.min(cap, 1 + (lv>55?1:0));
+        const sp = ZB[t.z][lvl-1];
+        t.b = {kind:'zone', zone:t.z, level:lvl, pop:sp.pop, jobs:sp.jobs||0, powered:true};
+        if (t.z===1) sfx(480,.04);
+      }
+      continue;
+    }
+
+    if (t.b && t.b.kind==='zone'){
+      if (t.b.burning) continue;
+      if (!t.powered || !t.watered){
+        if (rnd() < .002 && t.b.level > 1){
+          t.b.level--; const sp = ZB[t.b.zone][t.b.level-1];
+          t.b.pop = sp.pop; t.b.jobs = sp.jobs||0;
+        }
+        continue;
+      }
+      if (t.b.level >= 4) continue;
+      const lv = landValue(t);
+      const edu = t.cover.edu + t.cover.edu2*1.4 + t.cover.edu3*2;
+      const need = [0,20,45,70][t.b.level];
+      const ok = lv > need && (t.b.zone===3 || t.b.zone===4 || edu > need/140);
+      if (ok && state.demand[t.b.zone] > .22 && rnd() < .006){
+        t.b.level++;
+        const sp = ZB[t.b.zone][t.b.level-1];
+        t.b.pop = sp.pop; t.b.jobs = sp.jobs||0;
+        sfx(700,.05);
+      }
+      if (state.happiness < 20 && rnd() < .0015){
+        if (t.b.level > 1){
+          t.b.level--; const sp = ZB[t.b.zone][t.b.level-1];
+          t.b.pop = sp.pop; t.b.jobs = sp.jobs||0;
+        } else t.b = null;
+      }
+    }
+  }
+}
+
+function updateSocial(){
+  let pop=0,jobs=0,com=0,ind=0,agri=0,healthS=0,nH=0,eduS=0,nE=0,trashCap=0,sewCap=0;
+  let goodsProd=0, foodProd=0;
+
+  for (const t of grid){
+    if (!t.b) continue;
+    const sp = S[t.b.id];
+    if (sp && sp.trash) trashCap += 240;
+    if (sp && sp.sewage) sewCap += 300;
+    if (t.b.kind !== 'zone') continue;
+    const z = t.b.zone;
+    if (z===1){
+      pop += t.b.pop;
+      healthS += t.cover.health; nH++;
+      eduS += t.cover.edu + t.cover.edu2*1.4 + t.cover.edu3*2; nE++;
+    } else if (z===2){ jobs += t.b.jobs; com += t.b.jobs; }
+    else if (z===3){ jobs += t.b.jobs; ind += t.b.jobs; goodsProd += (ZB[3][t.b.level-1].goods||0); }
+    else { jobs += t.b.jobs; agri += t.b.jobs; foodProd += (ZB[4][t.b.level-1].food||0); }
+  }
+
+  const jobMul = state.ordinances.night ? 1.12 : 1;
+  state.pop = pop; state.jobs = Math.floor(jobs*jobMul);
+  state.comJobs = com; state.indJobs = ind; state.agriJobs = agri;
+  state.workforce = Math.floor(pop*.55);
+
+  // perdagangan barang
+  const cons = com * .28;
+  let surplus = goodsProd - cons;
+  if (surplus > 0){ state.goods += surplus; state.exported += surplus; state.money += surplus*2.2; }
+  else { const imp = -surplus; state.imported += imp; state.money -= imp*3.1; }
+  state.goods = clamp(state.goods, 0, 4000);
+  state.food += foodProd*.15;
+  state.food = clamp(state.food, 0, 3000);
+
+  // sampah & limbah
+  let trash = 0, sew = 0;
+  for (const t of grid){
+    if (t.b && t.b.kind==='zone'){ trash += 1 + t.b.level; sew += t.b.level; }
+    if (t.b && S[t.b.id] && S[t.b.id].poll) sew += 6;
+  }
+  const tm = state.ordinances.recycle ? .65 : 1;
+  state.trash = trashCap ? clamp((trash*tm/trashCap)*100,0,100) : (trash?100:0);
+  state.sewage = sewCap ? clamp((sew/sewCap)*100,0,100) : (sew?100:0);
+
+  const hT = nH ? 34 + (healthS/nH)*70 - state.pollAvg*.5 : 46;
+  state.health += (clamp(hT + (state.ordinances.clinic?18:0),0,100) - state.health)*.06;
+  const eT = nE ? (eduS/nE)*105 : 8;
+  state.education += (clamp(eT,0,100) - state.education)*.035;
+}
+
+function updateHappiness(){
+  let target = 60, cov = 0, n = 0, lv = 0;
+  for (const t of grid){
+    if (!t.b || t.b.kind!=='zone' || t.b.zone!==1) continue;
+    cov += (t.cover.police + t.cover.fire + t.cover.health + t.cover.edu + t.cover.park)/5;
+    lv += landValue(t); n++;
+  }
+  if (n){ target += (cov/n)*30 + (lv/n-40)*.18; } else target += 8;
+
+  const unemp = state.workforce>0 ? Math.max(0,(state.workforce-state.jobs)/state.workforce) : 0;
+  target -= unemp*36;
+  target -= (state.taxR-9)*2.4 + (state.taxC-9)*.8 + (state.taxI-9)*.8 + (state.taxA-6)*.6;
+  target += state.powerOk?5:-22;
+  target += state.waterOk?5:-22;
+  target -= state.trash*.16 + state.sewage*.1;
+  target -= state.crimeAvg*22;
+  target += state.health*.14;
+  target += (state.ordinances.subsidi?6:0) + (state.ordinances.ration?-4:0) + (state.ordinances.curfew?-3:0);
+  if (state.money < 0) target -= 15;
+  if (state.food < 20 && n) target -= 10;
+
+  state.happiness += (clamp(target,0,100) - state.happiness)*.075;
+  state.happiness = clamp(state.happiness,0,100);
+  state.approval += (state.happiness - state.approval)*.03;
+}
+
+function budgetTick(){
+  let upkeep=0, income=0;
+  for (const t of grid){
+    if (t.road) upkeep += S[t.road].up;
+    if (t.rail) upkeep += 4;
+    if (t.net) upkeep += 1;
+    if (t.b){
+      const sp = S[t.b.id];
+      if (!sp) continue;
+      let up = sp.up||0;
+      if (sp.cover==='police') up *= state.fundPolice/100;
+      else if (sp.cover==='fire') up *= state.fundFire/100;
+      else if (sp.cover==='health') up *= state.fundHealth/100;
+      else if (sp.cover&&sp.cover.startsWith('edu')) up *= state.fundEdu/100;
+      else if (sp.cover==='park') up *= state.fundPark/100;
+      upkeep += up;
+    }
+  }
+  for (const [id,on] of Object.entries(state.ordinances)){
+    if (!on) continue;
+    const o = ORDINANCES.find(x=>x.id===id);
+    if (o) upkeep += o.up;
+  }
+  for (const t of grid){
+    if (!t.b || t.b.kind!=='zone') continue;
+    let rate = t.b.zone===1?state.taxR:t.b.zone===2?state.taxC:t.b.zone===3?state.taxI:state.taxA;
+    const d = state.districts[t.district-1];
+    if (d) rate += d.taxMod;
+    const base = t.b.zone===1 ? t.b.pop*.62 : t.b.zone===4 ? t.b.jobs*.42 : t.b.jobs*.5;
+    income += base*(rate/10)*(t.b.zone===2&&state.ordinances.tour?1.2:1);
+  }
+  let loanPay = 0;
+  for (const l of state.loans) loanPay += l.pay;
+  state.income = income;
+  state.upkeep = upkeep + loanPay;
+  state.money += income - upkeep - loanPay;
+}
+
+function disasters(){
+  if (state.day < 20) return;
+  const r = rnd();
+  if (r < .012){
+    const c = grid.filter(t=>t.b); if (!c.length) return;
+    const t = c[Math.floor(rnd()*c.length)];
+    ignite(t); state.disasters++;
+    toast('🔥 Kebakaran di '+t.x+','+t.y);
+  } else if (r < .017){
+    const c = grid.filter(t=>t.b&&t.b.kind==='zone'); if (!c.length) return;
+    let {x:cx,y:cy} = c[Math.floor(rnd()*c.length)];
+    for (let i=0;i<14;i++){
+      cx += Math.round(rnd()*2-1); cy += Math.round(rnd()*2-1);
+      const n = tileAt(cx,cy); if (!n) break;
+      if (n.b) n.b = null;
+      n.tree = false;
+      if (n.road) n.road = null;
+      n.t = 'rock';
+    }
+    state.disasters++; toast('🌪 Tornado menerjang!');
+  } else if (r < .021){
+    const c = grid.filter(t=>t.b); if (!c.length) return;
+    const t = c[Math.floor(rnd()*c.length)];
+    for (let dy=-3;dy<=3;dy++) for (let dx=-3;dx<=3;dx++){
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (n && n.b && rnd()<.55) n.b = null;
+    }
+    state.disasters++; toast('🏚 Gempa bumi!');
+  } else if (r < .024){
+    const t = grid[Math.floor(rnd()*grid.length)];
+    for (let dy=-2;dy<=2;dy++) for (let dx=-2;dx<=2;dx++){
+      const n = tileAt(t.x+dx,t.y+dy); if (!n) continue;
+      if (Math.hypot(dx,dy) < 1.6) n.t = 'water';
+      else if (n.b) n.b = null;
+    }
+    state.disasters++; toast('☄ Meteor jatuh!');
+  } else if (r < .028){
+    const flooded = [];
+    for (const t of grid){
+      if (t.t==='grass' && rnd()<.06 && !t.b && !t.road){ t.t='water'; flooded.push(t); }
+    }
+    state.disasters++; toast('🌊 Banjir melanda!');
+    setTimeout(()=>{ for (const t of flooded) if (rnd()<.6) t.t='grass'; }, 12000);
+  }
+}
+
+function ignite(t){ if (t && t.b) t.b.burning = 12; }
+
+function fireTick(){
+  for (const t of grid){
+    if (!t.b || !t.b.burning) continue;
+    t.b.burning--;
+    if (t.b.burning <= 0){ t.b = null; continue; }
+    if (rnd() < .03){
+      const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+      const [dx,dy] = dirs[Math.floor(rnd()*4)];
+      const n = tileAt(t.x+dx,t.y+dy);
+      if (n && n.b && !n.b.burning && rnd() < .55) ignite(n);
+    }
+    if (t.cover.fire > .35 && rnd() < t.cover.fire*.4) t.b.burning = 0;
+  }
+}
+
+const CHIRPS = [
+  ['Warga', 'Jalanan makin macet, perlu jalan lebih lebar.'],
+  ['Warga', 'Taman di dekat rumah bikin betah.'],
+  ['Pengusaha', 'Pasokan barang lancar, bisnis jalan.'],
+  ['Warga', 'Sampah menumpuk, bau sekali!'],
+  ['Pelajar', 'Sekolah baru sangat membantu.'],
+  ['Warga', 'Listrik sering mati di blok kami.'],
+  ['Investor', 'Nilai lahan di sini naik terus.'],
+  ['Warga', 'Air keruh belakangan ini.'],
+  ['Warga', 'Kriminalitas menurun, terima kasih.'],
+  ['Petani', 'Panen tahun ini bagus.'],
+  ['Warga', 'Pajak terasa berat.'],
+  ['Turis', 'Kota ini punya potensi wisata.']
+];
+
+function chirp(){
+  if (rnd() > .08) return;
+  const [who, txt] = CHIRPS[Math.floor(rnd()*CHIRPS.length)];
+  const box = document.getElementById('chirp');
+  const d = document.createElement('div');
+  d.className = 'chirp';
+  d.innerHTML = '<b>'+who+'</b>'+txt;
+  box.appendChild(d);
+  setTimeout(()=>d.remove(), 9000);
+  while (box.children.length > 3) box.firstChild.remove();
+}
+
+function checkAch(){
+  for (const a of ACHIEVEMENTS){
+    if (state.ach[a.id]) continue;
+    if (a.c()){
+      state.ach[a.id] = true;
+      toast('🏆 ' + a.n + ' — ' + a.d);
+      sfx(980,.16);
+    }
+  }
+}
+
+function tick(){
+  state.day += 1/30;
+  recomputeNets();
+  recomputeCover();
+  const f = Math.floor(state.day*30);
+  if (f % 5 === 0) recomputePollution();
+  if (f % 7 === 0) recomputeNoise();
+  recomputeRisk();
+  recomputeTraffic();
+  for (const t of grid) t.lv = landValue(t);
+
+  let ps=0, cs=0, n=0;
+  for (const t of grid){ if (!t.b) continue; ps += t.poll; cs += t.crimeR; n++; }
+  state.pollAvg = n?ps/n:0;
+  state.crimeAvg = n?cs/n:0;
+
+  updateSocial();
+  computeDemand();
+  updateHappiness();
+  fireTick();
+  budgetTick();
+  growth();
+  disasters();
+  chirp();
+  checkAch();
+
+  state.history.push({p:state.pop, h:state.happiness});
+  if (state.history.length > 120) state.history.shift();
+
+  const th = [0,300,900,2000,4000,7000,12000,20000,32000,50000,80000,120000];
+  while (state.milestone < th.length-1 && state.pop >= th[state.milestone+1]){
+    state.milestone++;
+    toast('Milestone populasi ' + th[state.milestone].toLocaleString('id-ID'));
+    sfx(880,.14);
+    buildToolbar();
+  }
+
+  if (state.money < -25000 && !state.dead && state.mode !== 'sandbox'){
+    state.dead = true;
+    document.getElementById('gameover').style.display = 'flex';
+  }
+  if (f % 40 === 0) autosave();
+}
+
+/* ══════════ AUDIO ══════════ */
+let actx = null;
+function sfx(freq, dur){
+  try{
+    if (!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = freq; o.type = 'triangle';
+    g.gain.setValueAtTime(.04, actx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+dur);
+    o.connect(g); g.connect(actx.destination);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+
+/* ══════════ AKSI ══════════ */
+function spend(n){
+  if (state.mode === 'sandbox') return true;
+  if (state.money < n){ toast('Kas tidak cukup'); return false; }
+  state.money -= n; return true;
+}
+
+function applyTool(x,y){
+  const t = tileAt(x,y);
+  if (!t) return;
+  const tool = state.tool;
+
+  if (tool === 'inspect'){ showInfo(t); return; }
+
+  if (tool === 'bulldoze'){
+    if (t.b){ const sp = S[t.b.id]; state.money += sp?sp.cost*.4:10; t.b = null; return; }
+    if (t.road){ t.road = null; return; }
+    if (t.net){ t.net = null; return; }
+    if (t.rail){ t.rail = false; return; }
+    if (t.z){ t.z = 0; return; }
+    if (t.tree){ t.tree = false; return; }
+    return;
+  }
+
+  if (tool === 'district'){
+    if (!state.districts.length){ toast('Buat distrik dulu di panel Distrik'); return; }
+    t.district = state.curDistrict;
+    return;
+  }
+
+  if (ZONE_TOOLS[tool]){
+    const z = ZONE_TOOLS[tool];
+    if (t.t==='water'||t.road||t.net||t.rail||t.b) return;
+    t.tree = false; t.z = z; return;
+  }
+
+  const sp = S[tool];
+  if (!sp) return;
+
+  if (sp.cat === 'road'){
+    if (t.t==='water'||t.b) return;
+    if (t.road === tool) return;
+    if (!spend(sp.cost)) return;
+    t.road = tool; t.z = 0; t.tree = false; t.net = null;
+    return;
+  }
+
+  if (sp.cat === 'net'){
+    if (t.b) return;
+    if (t.net === tool) return;
+    if (!spend(sp.cost)) return;
+    t.net = tool === 'pylon' ? 'power' : 'water';
+    t.tree = false;
+    return;
+  }
+
+  if (sp.rail){
+    if (t.t==='water'||t.b) return;
+    if (!spend(sp.cost)) return;
+    t.rail = true; t.z = 0; t.tree = false;
+    return;
+  }
+
+  if (sp.needWater){
+    const near = [[1,0],[-1,0],[0,1],[0,-1]].some(([dx,dy])=>{
+      const n = tileAt(t.x+dx,t.y+dy); return n && n.t==='water';
+    });
+    if (!near){ toast('Harus di tepi air'); return; }
+  }
+
+  if (t.b||t.road||t.net||t.rail){ toast('Petak terpakai'); return; }
+  if (t.t==='water'){ toast('Tidak bisa di atas air'); return; }
+  if (!spend(sp.cost)) return;
+
+  if (tool === 'tree'){ t.tree = true; return; }
+  t.b = {kind:'svc', id:tool, powered:true};
+  t.z = 0; t.tree = false;
+  sfx(620,.06);
+}
+
+function showInfo(t){
+  const el = document.getElementById('info');
+  const b = t.b;
+  const nm = t.road ? S[t.road].n : b ? S[b.id].n : t.rail ? 'Rel' : t.net ? (t.net==='power'?'Kabel':'Pipa')
+    : t.t==='water'?'Air':t.t==='sand'?'Pantai':t.t==='rock'?'Bebatuan':t.t==='snow'?'Salju':t.tree?'Pohon':'Lahan kosong';
+  let h = '<h4>'+nm+'</h4>Petak '+t.x+', '+t.y+'<br>';
+  if (b && b.kind==='zone'){
+    h += 'Zona: '+ZNAME[b.zone]+' Lv.'+b.level+'<br>';
+    h += (b.zone===1?'Penduduk: '+b.pop:'Pekerjaan: '+b.jobs)+'<br>';
+  }
+  if (t.district){ const d = state.districts[t.district-1]; if (d) h += 'Distrik: '+d.name+'<br>'; }
+  h += 'Nilai lahan: '+Math.round(t.lv)+'<br>';
+  h += 'Listrik: '+(t.powered?'ya':'tidak')+' · Air: '+(t.watered?'ya':'tidak')+'<br>';
+  h += 'Polusi '+Math.round(t.poll)+' · Bising '+Math.round(t.noise)+'<br>';
+  h += 'Kriminal '+Math.round(t.crimeR*100)+'% · Kebakaran '+Math.round(t.fireR*100)+'%';
+  el.innerHTML = h; el.style.display = 'block';
+}
+
+/* ══════════ INPUT ══════════ */
+let panning=false, drawing=false, lastTile=null, panX0=0, panY0=0;
+
+cvs.addEventListener('contextmenu', e => e.preventDefault());
+cvs.addEventListener('pointerdown', e => {
+  if (!state.started || state.dead) return;
+  cvs.setPointerCapture(e.pointerId);
+  const p = pick(e.clientX, e.clientY);
+  if (e.button===2 || e.button===1 || state.tool==='inspect'){
+    panning = true; panX0 = e.clientX-panX; panY0 = e.clientY-panY;
+    if (state.tool==='inspect') applyTool(p.x,p.y);
+    return;
+  }
+  drawing = true; lastTile = p; applyTool(p.x,p.y);
+});
+cvs.addEventListener('pointermove', e => {
+  const p = pick(e.clientX,e.clientY);
+  hover = p;
+  if (panning){ panX = e.clientX-panX0; panY = e.clientY-panY0; return; }
+  if (drawing && lastTile && (lastTile.x!==p.x || lastTile.y!==p.y)){
+    const steps = Math.max(Math.abs(p.x-lastTile.x), Math.abs(p.y-lastTile.y));
+    for (let i=1;i<=steps;i++){
+      applyTool(Math.round(lastTile.x+(p.x-lastTile.x)*i/steps),
+                Math.round(lastTile.y+(p.y-lastTile.y)*i/steps));
+    }
+    lastTile = p;
+  }
+});
+const endP = () => { panning=false; drawing=false; lastTile=null; };
+cvs.addEventListener('pointerup', endP);
+cvs.addEventListener('pointercancel', endP);
+cvs.addEventListener('pointerleave', () => { hover = null; });
+
+cvs.addEventListener('wheel', e => {
+  e.preventDefault();
+  const b4 = pick(e.clientX,e.clientY);
+  zoom = clamp(zoom*(e.deltaY<0?1.12:.89), .35, 2.6);
+  const af = pick(e.clientX,e.clientY);
+  panX += (af.x-b4.x)*TW/2*zoom;
+  panY += (af.y-b4.y)*TH/2*zoom;
+}, {passive:false});
+
+window.addEventListener('keydown', e => {
+  if (!state.started) return;
+  if (e.key==='Escape') setTool('inspect');
+  if (e.key===' '){ e.preventDefault(); setSpeed(state.speed===0?1:0); }
+  if (e.key==='ArrowLeft') panX += 70;
+  if (e.key==='ArrowRight') panX -= 70;
+  if (e.key==='ArrowUp') panY += 70;
+  if (e.key==='ArrowDown') panY -= 70;
+});
+
+/* ══════════ TOOLBAR ══════════ */
+function buildToolbar(){
+  const bar = document.getElementById('toolbar');
+  bar.innerHTML = '';
+  const cats = [
+    ['Zona', ['zone1','zone2','zone3','zone4']],
+    ['Jalan', ['dirt','asphalt','avenue','highway']],
+    ['Jaringan', ['pylon','pipe']],
+    ['Listrik', ['coal','gas','solar','wind','nuclear']],
+    ['Air & Sampah', ['tower','pump','sewage','landfill','incin']],
+    ['Layanan', ['police','fire','hospital','park','plaza','sports','cemetery']],
+    ['Pendidikan', ['school','high','univ']],
+    ['Transportasi', ['busstop','rail','metro','raildepot','seaport','airport']],
+    ['Alam', ['tree']],
+    ['Alat', ['district','bulldoze','inspect']]
+  ];
+  const modItems = Object.keys(S).filter(k => S[k].mod);
+  if (modItems.length) cats.push(['Mod', modItems]);
+
+  const unlocked = t => !t.unlock || state.pop >= t.unlock || state.mode==='sandbox';
+
+  for (const [label, ids] of cats){
+    const g = document.createElement('div');
+    g.className = 'grp';
+    for (const id of ids){
+      const sp = S[id];
+      const b = document.createElement('button');
+      b.className = 'tool';
+      b.dataset.tool = id;
+      const ic = sp ? (sp.ic||'▦') : '▩';
+      const nm = sp ? sp.n : ZNAME[ZONE_TOOLS[id]];
+      b.innerHTML = '<span class="ic">'+ic+'</span><span>'+(nm||'').split(' ')[0]+'</span><span class="c">'+(sp&&sp.cost?'$'+sp.cost:'')+'</span>';
+      b.title = nm + (sp && sp.cost ? ' — '+money(sp.cost) : '') + (sp&&sp.unlock&&!unlocked(sp) ? ' (butuh '+sp.unlock+' penduduk)' : '');
+      if (sp && !unlocked(sp)) b.classList.add('lock');
+      b.onclick = () => setTool(id);
+      g.appendChild(b);
+    }
+    bar.appendChild(g);
+  }
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool===state.tool));
+}
+
+function setTool(id){
+  state.tool = id;
+  document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool===id));
+  if (id !== 'inspect') document.getElementById('info').style.display = 'none';
+}
+
+function setSpeed(s){
+  state.speed = s;
+  document.querySelectorAll('.sbtn').forEach(b => b.classList.toggle('on', +b.dataset.sp===s));
+}
+document.querySelectorAll('.sbtn').forEach(b => b.onclick = () => setSpeed(+b.dataset.sp));
+
+function toast(text){
+  const box = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = 'msg'; d.textContent = text;
+  box.appendChild(d);
+  setTimeout(()=>d.remove(), 3400);
+}
+
+/* ══════════ PANEL SISI ══════════ */
+function openSide(kind){
+  const el = document.getElementById('side');
+  el.style.display = 'block';
+  el.dataset.kind = kind;
+  if (kind==='budget') renderBudget(el);
+  else if (kind==='overlay') renderOverlay(el);
+  else if (kind==='stats') renderStats(el);
+  else if (kind==='bank') renderBank(el);
+  else if (kind==='ord') renderOrd(el);
+  else if (kind==='district') renderDistrict(el);
+  else if (kind==='ach') renderAch(el);
+}
+
+function renderOverlay(el){
+  const opts = [['none','Normal'],['power','Listrik'],['water','Air'],['poll','Polusi'],
+    ['noise','Kebisingan'],['crime','Kriminalitas'],['fire','Risiko Kebakaran'],
+    ['lv','Nilai Lahan'],['traffic','Lalu Lintas'],['edu','Pendidikan'],
+    ['trans','Transportasi'],['district','Distrik']];
+  el.innerHTML = '<h4>Tampilan Peta</h4>';
+  for (const [k,n] of opts){
+    const b = document.createElement('button');
+    b.className = 'btn'+(state.overlay===k?' pri':'');
+    b.textContent = n;
+    b.onclick = () => { state.overlay = k; renderOverlay(el); };
+    el.appendChild(b);
+  }
+}
+
+function renderBudget(el){
+  el.innerHTML = '<h4>Anggaran</h4>';
+  const sliders = [
+    ['Pajak Perumahan','taxR',0,25],['Pajak Komersial','taxC',0,25],
+    ['Pajak Industri','taxI',0,25],['Pajak Pertanian','taxA',0,25],
+    ['Dana Polisi','fundPolice',0,150],['Dana Damkar','fundFire',0,150],
+    ['Dana Kesehatan','fundHealth',0,150],['Dana Pendidikan','fundEdu',0,150],
+    ['Dana Taman','fundPark',0,150]
+  ];
+  for (const [label,key,mn,mx] of sliders){
+    const d = document.createElement('div');
+    d.className = 'sl';
+    d.innerHTML = '<label><span>'+label+'</span><b>'+state[key]+'</b></label>'+
+      '<input type="range" min="'+mn+'" max="'+mx+'" value="'+state[key]+'">';
+    const inp = d.querySelector('input');
+    inp.oninput = () => { state[key] = +inp.value; d.querySelector('b').textContent = inp.value; };
+    el.appendChild(d);
+  }
+  el.insertAdjacentHTML('beforeend',
+    '<div style="border-top:1px solid #1f2c38;padding-top:5px;font-size:10px">'+
+    'Masuk <b class="ok">'+money(state.income)+'</b> · Keluar <b class="bad">'+money(state.upkeep)+'</b><br>'+
+    'Saldo <b class="'+(state.income-state.upkeep>=0?'ok':'bad')+'">'+money(state.income-state.upkeep)+'</b></div>');
+}
+
+function renderStats(el){
+  el.innerHTML = '<h4>Statistik</h4>';
+  const g = document.createElement('canvas');
+  g.id = 'graph'; g.width = 220; g.height = 76;
+  el.appendChild(g);
+  const c = g.getContext('2d');
+  c.fillStyle = '#0a121a'; c.fillRect(0,0,220,76);
+  const h = state.history;
+  if (h.length > 1){
+    const mp = Math.max(10, ...h.map(o=>o.p));
+    c.strokeStyle = '#4ecb80'; c.lineWidth = 1.5; c.beginPath();
+    h.forEach((o,i)=>{ const x=i/(h.length-1)*220, y=74-(o.p/mp)*70; i?c.lineTo(x,y):c.moveTo(x,y); });
+    c.stroke();
+    c.strokeStyle = '#e8933a'; c.beginPath();
+    h.forEach((o,i)=>{ const x=i/(h.length-1)*220, y=74-(o.h/100)*70; i?c.lineTo(x,y):c.moveTo(x,y); });
+    c.stroke();
+  }
+  const rows = [
+    ['Penduduk', state.pop.toLocaleString('id-ID')],
+    ['Pekerjaan', state.jobs.toLocaleString('id-ID')],
+    ['Angkatan kerja', state.workforce.toLocaleString('id-ID')],
+    ['Kebahagiaan', Math.round(state.happiness)+'%'],
+    ['Kesehatan', Math.round(state.health)+'%'],
+    ['Pendidikan', Math.round(state.education)+'%'],
+    ['Kriminalitas', Math.round(state.crimeAvg*100)+'%'],
+    ['Polusi', Math.round(state.pollAvg||0)],
+    ['Sampah', Math.round(state.trash)+'%'],
+    ['Limbah', Math.round(state.sewage)+'%'],
+    ['Barang', Math.round(state.goods)],
+    ['Ekspor', Math.round(state.exported)],
+    ['Impor', Math.round(state.imported)],
+    ['Peringkat', rank()]
+  ];
+  for (const [k,v] of rows){
+    el.insertAdjacentHTML('beforeend',
+      '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:10px;border-bottom:1px solid #16212b">'+
+      '<span style="color:#8a9baa">'+k+'</span><b>'+v+'</b></div>');
+  }
+}
+
+function renderBank(el){
+  el.innerHTML = '<h4>Bank</h4>';
+  const offers = [
+    {amt:10000,rate:.06,term:24},{amt:35000,rate:.08,term:36},{amt:90000,rate:.10,term:48}
+  ];
+  for (const o of offers){
+    const pay = o.amt*(1+o.rate*o.term/12)/o.term;
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.innerHTML = money(o.amt)+' · '+Math.round(o.rate*100)+'% · '+money(pay)+'/bln';
+    b.onclick = () => {
+      if (state.loans.length >= 3){ toast('Maksimal 3 pinjaman'); return; }
+      state.loans.push({amt:o.amt, pay, left:o.term});
+      state.money += o.amt;
+      toast('Pinjaman disetujui');
+      renderBank(el);
+    };
+    el.appendChild(b);
+  }
+  if (state.loans.length){
+    for (let i=0;i<state.loans.length;i++){
+      const b = document.createElement('button');
+      b.className = 'btn dgr';
+      b.textContent = 'Lunasi '+money(state.loans[i].pay*state.loans[i].left);
+      b.onclick = () => {
+        const rest = state.loans[i].pay*state.loans[i].left;
+        if (state.money < rest){ toast('Kas tidak cukup'); return; }
+        state.money -= rest; state.loans.splice(i,1);
+        renderBank(el);
+      };
+      el.appendChild(b);
+    }
+  }
+}
+
+function renderOrd(el){
+  el.innerHTML = '<h4>Ordinansi</h4>';
+  for (const o of ORDINANCES){
+    const on = !!state.ordinances[o.id];
+    const b = document.createElement('button');
+    b.className = 'btn'+(on?' pri':'');
+    b.innerHTML = (on?'✓ ':'')+o.n+'<br><span style="opacity:.7;font-size:9px">'+o.desc+
+      (o.up?' · '+money(o.up)+'/bln':'')+'</span>';
+    b.onclick = () => { state.ordinances[o.id] = !on; renderOrd(el); };
+    el.appendChild(b);
+  }
+}
+
+function renderDistrict(el){
+  el.innerHTML = '<h4>Distrik</h4>';
+  for (let i=0;i<state.districts.length;i++){
+    const d = state.districts[i];
+    const b = document.createElement('button');
+    b.className = 'btn'+(state.curDistrict===i+1?' pri':'');
+    b.textContent = d.name+' (pajak '+((d.taxMod>=0?'+':'')+d.taxMod)+')';
+    b.onclick = () => { state.curDistrict = i+1; setTool('district'); renderDistrict(el); };
+    el.appendChild(b);
+  }
+  const add = document.createElement('button');
+  add.className = 'btn';
+  add.textContent = '+ Distrik Baru';
+  add.onclick = () => {
+    const n = prompt('Nama distrik:', 'Distrik '+(state.districts.length+1));
+    if (!n) return;
+    state.districts.push({name:n, taxMod:0});
+    state.curDistrict = state.districts.length;
+    setTool('district');
+    renderDistrict(el);
+  };
+  el.appendChild(add);
+
+  const cur = state.districts[state.curDistrict-1];
+  if (cur){
+    el.insertAdjacentHTML('beforeend','<div class="sl" style="margin-top:6px"><label><span>Modifier pajak</span><b>'+cur.taxMod+'</b></label><input type="range" min="-5" max="8" value="'+cur.taxMod+'"></div>');
+    const inp = el.querySelector('input');
+    inp.oninput = () => { cur.taxMod = +inp.value; };
+    const del = document.createElement('button');
+    del.className = 'btn dgr';
+    del.textContent = 'Hapus distrik ini';
+    del.onclick = () => {
+      state.districts.splice(state.curDistrict-1,1);
+      for (const t of grid) if (t.district > state.curDistrict) t.district--;
+      state.curDistrict = 0;
+      renderDistrict(el);
+    };
+    el.appendChild(del);
+  }
+}
+
+function renderAch(el){
+  el.innerHTML = '<h4>Pencapaian</h4>';
+  for (const a of ACHIEVEMENTS){
+    const got = !!state.ach[a.id];
+    el.insertAdjacentHTML('beforeend',
+      '<div class="ach'+(got?' got':'')+'"><div class="dot"></div><div><b>'+a.n+'</b><br><span>'+a.d+'</span></div></div>');
+  }
+  el.insertAdjacentHTML('beforeend','<div class="mini" style="margin-top:8px">Terbuka: '+
+    Object.keys(state.ach).length+' / '+ACHIEVEMENTS.length+'</div>');
+}
+
+function rank(){
+  const p = state.pop;
+  if (p >= 120000) return 'Megapolis';
+  if (p >= 60000) return 'Metropolis';
+  if (p >= 25000) return 'Kota Besar';
+  if (p >= 8000) return 'Kota';
+  if (p >= 2000) return 'Kota Kecil';
+  if (p >= 400) return 'Desa';
+  return 'Dusun';
+}
+
+/* ══════════ HUD ══════════ */
+function paintHUD(){
+  const m = document.getElementById('s-money');
+  m.textContent = state.mode==='sandbox' ? '∞' : money(state.money);
+  m.className = state.money < 0 ? 'bad' : state.money < 5000 ? 'warn' : 'ok';
+  document.getElementById('s-pop').textContent = state.pop.toLocaleString('id-ID');
+  document.getElementById('s-jobs').textContent = state.jobs.toLocaleString('id-ID');
+  const hp = document.getElementById('s-happy');
+  hp.textContent = Math.round(state.happiness)+'%';
+  hp.className = state.happiness>58?'ok':state.happiness>32?'warn':'bad';
+  const pw = document.getElementById('s-power');
+  pw.textContent = state.powerUse+'/'+state.powerCap;
+  pw.className = state.powerOk?'ok':'bad';
+  const wt = document.getElementById('s-water');
+  wt.textContent = state.waterUse+'/'+state.waterCap;
+  wt.className = state.waterOk?'ok':'bad';
+  const tr = document.getElementById('s-trash');
+  tr.textContent = Math.round(state.trash)+'%';
+  tr.className = state.trash>70?'bad':state.trash>40?'warn':'ok';
+  document.getElementById('s-goods').textContent = Math.round(state.goods);
+  const yr = 2000 + Math.floor(state.day/12);
+  document.getElementById('s-date').textContent = (Math.floor(state.day)%28+1)+' '+MONTHS[Math.floor(state.day)%12]+' '+yr;
+}
+
+/* ══════════ MINIMAP ══════════ */
+const mm = document.getElementById('mm'), mctx = mm.getContext('2d');
+function paintMinimap(){
+  if (mm.width !== MAP_W){ mm.width = MAP_W; mm.height = MAP_H; }
+  const img = mctx.createImageData(MAP_W, MAP_H);
+  for (let i=0;i<grid.length;i++){
+    const t = grid[i];
+    let c = [32,55,36];
+    if (t.t==='water') c=[22,56,92];
+    else if (t.t==='sand') c=[155,142,102];
+    else if (t.t==='rock') c=[92,90,86];
+    else if (t.t==='snow') c=[190,205,215];
+    if (t.road) c=[64,68,74];
+    if (t.net) c=[118,118,58];
+    if (t.z===1) c=[62,150,90];
+    if (t.z===2) c=[62,120,196];
+    if (t.z===3) c=[190,156,54];
+    if (t.z===4) c=[130,190,80];
+    if (t.b) c = t.b.burning ? [235,105,48] : t.b.kind==='svc' ? [232,232,232] : c.map(v=>Math.min(255,v+36));
+    img.data[i*4]=c[0]; img.data[i*4+1]=c[1]; img.data[i*4+2]=c[2]; img.data[i*4+3]=255;
+  }
+  mctx.putImageData(img,0,0);
+}
+mm.addEventListener('click', e => {
+  const r = mm.getBoundingClientRect();
+  const p = iso((e.clientX-r.left)/r.width*MAP_W, (e.clientY-r.top)/r.height*MAP_H);
+  panX = W/2 - p.x*zoom; panY = H/2 - p.y*zoom;
+});
+
+/* ══════════ SIMPAN ══════════ */
+const SLOT = s => 'metro_slot_'+s;
+
+function serialize(){
+  return {
+    v:2, w:MAP_W, h:MAP_H, money:state.money, day:state.day, happiness:state.happiness,
+    taxR:state.taxR, taxC:state.taxC, taxI:state.taxI, taxA:state.taxA,
+    fundPolice:state.fundPolice, fundFire:state.fundFire, fundHealth:state.fundHealth,
+    fundEdu:state.fundEdu, fundPark:state.fundPark, mode:state.mode,
+    milestone:state.milestone, ach:state.ach, exported:state.exported,
+    districts:state.districts, ordinances:state.ordinances, waterLevel:state.waterLevel,
+    treeDensity:state.treeDensity, terrain:state.terrain, mods:state.mods,
+    tiles: grid.map(t => [t.t, t.z, t.road, t.net, t.rail, t.tree, t.district,
+      t.b ? (t.b.kind==='zone' ? t.b.zone+':'+t.b.level : t.b.id) : null, t.v, t.seed])
+  };
+}
+
+function saveSlot(slot){
+  try{
+    localStorage.setItem(SLOT(slot), JSON.stringify(serialize()));
+    toast('Disimpan ke slot '+slot);
+    renderSlots();
+  }catch(e){ toast('Gagal menyimpan'); }
+}
+
+function loadSlot(slot){
+  const raw = localStorage.getItem(SLOT(slot));
+  if (!raw){ toast('Slot kosong'); return false; }
+  try{
+    const d = JSON.parse(raw);
+    MAP_W = d.w || 52; MAP_H = d.h || 52;
+    Object.assign(state, {
+      money:d.money, day:d.day, happiness:d.happiness,
+      taxR:d.taxR, taxC:d.taxC, taxI:d.taxI, taxA:d.taxA ?? 6,
+      fundPolice:d.fundPolice, fundFire:d.fundFire, fundHealth:d.fundHealth,
+      fundEdu:d.fundEdu, fundPark:d.fundPark, mode:d.mode||'normal',
+      milestone:d.milestone||0, ach:d.ach||{}, exported:d.exported||0,
+      districts:d.districts||[], ordinances:d.ordinances||{},
+      waterLevel:d.waterLevel ?? 50, treeDensity:d.treeDensity ?? 12,
+      terrain:d.terrain||'island', mods:d.mods||[], dead:false, loans:[], history:[]
+    });
+    loadMods(state.mods, true);
+    genMap();
+    d.tiles.forEach((a,i) => {
+      const t = grid[i];
+      if (!t) return;
+      t.t=a[0]; t.z=a[1]; t.road=a[2]; t.net=a[3]; t.rail=a[4]; t.tree=a[5]; t.district=a[6]||0;
+      t.v=a[8] ?? Math.random(); t.seed=a[9] ?? Math.random();
+      t.b = null;
+      if (a[7]){
+        if (a[7].includes(':')){
+          const [z,l] = a[7].split(':').map(Number);
+          const sp = ZB[z][l-1];
+          t.b = {kind:'zone', zone:z, level:l, pop:sp.pop, jobs:sp.jobs||0, powered:true};
+        } else if (S[a[7]]) t.b = {kind:'svc', id:a[7], powered:true};
+      }
+    });
+    recomputeCover(); recomputePollution(); recomputeNoise();
+    resize(); buildToolbar();
+    return true;
+  }catch(e){ toast('Berkas rusak'); return false; }
+}
+
+function autosave(){ try{ localStorage.setItem(SLOT('auto'), JSON.stringify(serialize())); }catch(e){} }
+
+function renderSlots(){
+  const box = document.getElementById('slots');
+  box.innerHTML = '';
+  for (let s=1;s<=3;s++){
+    const has = !!localStorage.getItem(SLOT(s));
+    const b = document.createElement('button');
+    b.className = 'slot';
+    b.textContent = 'Slot '+s+(has?' ●':' ○');
+    b.onclick = () => {
+      if (has){
+        if (confirm('Muat slot '+s+'?')){
+          if (loadSlot(s)) startGame();
+        }
+      } else {
+        toast('Slot '+s+' masih kosong');
+      }
+    };
+    box.appendChild(b);
+  }
+  if (localStorage.getItem(SLOT('auto'))){
+    const b = document.createElement('button');
+    b.className = 'slot';
+    b.textContent = 'Muat Autosave';
+    b.onclick = () => { if (loadSlot('auto')) startGame(); };
+    box.appendChild(b);
+  }
+}
+
+/* ══════════ MOD ══════════ */
+function loadMods(list, silent){
+  for (const m of list){
+    if (!m || !m.buildings) continue;
+    for (const b of m.buildings){
+      if (!b.id) continue;
+      S[b.id] = Object.assign({
+        cat:'svc', n:b.id, cost:100, up:5, hw:16, h:24,
+        top:'#cccccc', left:'#888888', right:'#999999', rad:5, ic:'◆', mod:true
+      }, b);
+    }
+  }
+  buildToolbar();
+  renderModList();
+  if (!silent) toast('Mod dipasang');
+}
+
+function renderModList(){
+  const el = document.getElementById('modlist');
+  el.innerHTML = state.mods.length ? '' : 'Belum ada mod terpasang.';
+  state.mods.forEach((m,i)=>{
+    const d = document.createElement('div');
+    d.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0';
+    d.innerHTML = '<span>'+ (m.name||'Tanpa nama') +' ('+((m.buildings||[]).length)+' bangunan)</span>';
+    const x = document.createElement('button');
+    x.className = 'slot'; x.textContent = '×';
+    x.onclick = () => { state.mods.splice(i,1); renderModList(); };
+    d.appendChild(x);
+    el.appendChild(d);
+  });
+}
+
+document.getElementById('btn-modadd').onclick = () => {
+  try{
+    const m = JSON.parse(document.getElementById('modinput').value);
+    if (!m.buildings || !m.buildings.length) throw 0;
+    state.mods.push(m);
+    loadMods([m], true);
+    document.getElementById('modinput').value = '';
+    toast('Mod "'+(m.name||'?')+'" terpasang');
+  }catch(e){ toast('JSON tidak valid'); }
+};
+document.getElementById('btn-modclear').onclick = () => {
+  state.mods = [];
+  for (const k of Object.keys(S)) if (S[k].mod) delete S[k];
+  buildToolbar(); renderModList();
+  toast('Semua mod dihapus');
+};
+
+/* ══════════ LOOP ══════════ */
+let lastT = performance.now();
+function loop(now){
+  const dt = Math.min(now-lastT, 220);
+  lastT = now;
+  if (state.started && !state.dead && state.speed > 0){
+    const iv = state.speed===1?900:state.speed===2?400:170;
+    state.acc += dt;
+    while (state.acc >= iv){ state.acc -= iv; tick(); }
+  }
+  draw();
+  paintHUD();
+  requestAnimationFrame(loop);
+}
+
+function resize(){
+  W = cvs.width = window.innerWidth;
+  H = cvs.height = window.innerHeight;
+  const c = iso(MAP_W/2, MAP_H/2);
+  panX = W/2 - c.x*zoom;
+  panY = H/2 - c.y*zoom;
+}
+window.addEventListener('resize', resize);
+
+/* ══════════ BOOT ══════════ */
+function startGame(){
+  document.getElementById('splash').style.display = 'none';
+  state.started = true;
+  setTool('dirt');
+  buildToolbar();
+  resize();
+}
+
+document.getElementById('btn-new').onclick = () => {
+  MAP_W = MAP_H = +document.getElementById('m-size').value;
+  state.terrain = document.getElementById('m-terrain').value;
+  state.waterLevel = +document.getElementById('m-water').value;
+  state.treeDensity = +document.getElementById('m-tree').value;
+  state.mode = document.getElementById('m-mode').value;
+  const seed = +document.getElementById('m-seed').value || 1337;
+  srand(seed);
+
+  Object.assign(state, {
+    money: state.mode==='hard' ? 22000 : 50000, day:0, happiness:70, health:70,
+    education:20, taxR:9, taxC:9, taxI:9, taxA:6,
+    fundPolice:100, fundFire:100, fundHealth:100, fundEdu:100, fundPark:100,
+    pop:0, jobs:0, loans:[], history:[], milestone:0, dead:false,
+    ach:{}, exported:0, imported:0, goods:0, food:0, disasters:0,
+    districts:[], curDistrict:0, ordinances:{}, districts:[]
+  });
+  genMap();
+  startGame();
+  toast('Gambar jalan, lalu cat zona di sebelahnya');
+};
+
+document.getElementById('btn-restart').onclick = () => {
+  document.getElementById('gameover').style.display = 'none';
+  document.getElementById('btn-new').onclick();
+};
+
+document.getElementById('btn-helpclose').onclick = () => {
+  document.getElementById('splash').style.display = 'flex';
+};
+
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x===t));
+  document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('on', p.id === 'pane-'+t.dataset.tab));
+});
+
+// panel tombol sisi
+const sideBtns = document.createElement('div');
+sideBtns.className = 'panel';
+sideBtns.style.cssText = 'right:6px;top:auto;bottom:140px;padding:4px;display:flex;flex-direction:column;gap:3px;z-index:30';
+for (const [k,label] of [['overlay','🗺'],['budget','💰'],['ord','📜'],['district','⬢'],['stats','📊'],['bank','🏦'],['ach','🏆']]){
+  const b = document.createElement('button');
+  b.className = 'sbtn'; b.textContent = label;
+  b.onclick = () => {
+    const el = document.getElementById('side');
+    if (el.style.display === 'block' && el.dataset.kind === k){ el.style.display = 'none'; return; }
+    openSide(k);
+  };
+  sideBtns.appendChild(b);
+}
+document.body.appendChild(sideBtns);
+
+// tombol simpan cepat
+const saveBtn = document.createElement('button');
+saveBtn.className = 'sbtn';
+saveBtn.textContent = '💾';
+saveBtn.style.cssText = 'position:fixed;right:6px;bottom:112px;z-index:30;width:26px;height:26px';
+saveBtn.onclick = () => { const s = prompt('Simpan ke slot (1-3):','1'); if (s && +s>=1 && +s<=3) saveSlot(+s); };
+document.body.appendChild(saveBtn);
+
+srand(1337);
+genMap();
+resize();
+renderSlots();
+setInterval(paintMinimap, 700);
+requestAnimationFrame(loop);
+
+window.Metropolis = { state, grid, saveSlot, loadSlot, S };
+})();
+</script>
+</body>
+                                    </html>
